@@ -102,15 +102,16 @@ class economy(commands.Cog):
             pass
 
     def save_json(self):
-        with open("economy_data.json", "w") as json_file:
-            json.dump(self.data, json_file)
+        if self.data != None:
+            with open("economy_data.json", "w") as json_file:
+                json.dump(self.data, json_file)
 
     def load_data(self):
         try:
             with open("economy_data.json", "r") as json_file:
                 self.data = json.load(json_file)
         except (json.decoder.JSONDecodeError, FileNotFoundError):
-            pass
+            self.data = None
 
     async def calculate_price_change(self, value, starting_price):
         with open('slot_data.json', 'r') as file:
