@@ -55,7 +55,6 @@ class economy(commands.Cog):
                 data = json.load(json_file)
                 if (("economy" in data) and ("economytimer" in data) and ("items" in data) and ("user_items" in data) and ("worktime" in data) and ("stocks" in data)):
                     self.data = data
-                    return
                 else:
                     #triggers when a category is missing
                     # user_input = timed_input("\033[31melements missing from economy_data.json: reset database? y/n\033[0m", 15)
@@ -68,6 +67,7 @@ class economy(commands.Cog):
                     #     print("\033[30;42mdatabase was reset\033[0m")
                     # else:
                     #     print("\033[101mdatabse will have to be fixed manually or reset during next restart\033[0m")
+                    self.data = init_data
                     print("\033[101meconomy_data.json seems to be missing a category, bot might not work properly until fixed\033[0m")
         except (FileNotFoundError):
             #triggers when file doesn't exist
@@ -87,6 +87,7 @@ class economy(commands.Cog):
             #     print("\033[30;42mdatabase was reset\033[0m")
             # else:
             #     print("\033[101mdatabse will have to be fixed manually or reset during next restart\033[0m")
+            self.data = init_data
             print("\033[101merror reading from economy_data.json, file might be corrupted or mistyped, bot might not work properly until fixed\033[0m")
 
     def save_slot(self):
@@ -105,8 +106,11 @@ class economy(commands.Cog):
             json.dump(self.data, json_file)
 
     def load_data(self):
-        with open("economy_data.json", "r") as json_file:
-            self.data = json.load(json_file)
+        try:
+            with open("economy_data.json", "r") as json_file:
+                self.data = json.load(json_file)
+        except (json.decoder.JSONDecodeError, FileNotFoundError):
+            pass
 
     async def calculate_price_change(self, value, starting_price):
         with open('slot_data.json', 'r') as file:
