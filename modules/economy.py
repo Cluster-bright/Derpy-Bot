@@ -36,7 +36,6 @@ class economy(commands.Cog):
             "worktime": [],
             "stocks":  []
         }
-
         try:
                 with open("slot_data.json", "r") as file:
                     slot_data = json.load(file)
@@ -50,7 +49,6 @@ class economy(commands.Cog):
             self.slot_data = slot_data
             print("created slot_data.json")
         try: #temporary fix while trying to elegantly deal with errors
-            #tests to ensure all categories are here
             with open("economy_data.json", "r") as json_file:
                 data = json.load(json_file)
                 if (("economy" in data) and ("economytimer" in data) and ("items" in data) and ("user_items" in data) and ("worktime" in data) and ("stocks" in data)):
@@ -112,7 +110,20 @@ class economy(commands.Cog):
                 self.data = json.load(json_file)
         except (json.decoder.JSONDecodeError, FileNotFoundError):
             self.data = None
-
+    async def update_hour_slot(self):
+        while True:
+            self.load_slot()
+            current_hour = self.slot_data['current_hour_slot']
+            reset = self.slot_data['update_slot']
+            if current_hour == reset:
+                print("Reset")
+                self.slot_data['current_hour_slot'] = reset
+            else:
+                next_hour_slot = current_hour + 1
+                print(next_hour_slot)
+                self.slot_data['current_hour_slot'] = next_hour_slot
+            self.save_slot()
+            await asyncio.sleep(0.5)
     async def calculate_price_change(self, value, starting_price):
         with open('slot_data.json', 'r') as file:
             slot = json.load(file)
@@ -143,7 +154,7 @@ class economy(commands.Cog):
                 stock['current_price'] = price_change
                 stock['history'].append(stock['current_price'])
                 print(price_change)
-                if len(stock['history']) > 24:
+                if len(stock['history']) > 240000:
                     stock['history'].pop(1)
                     print("Worked")
                 else:
@@ -153,7 +164,7 @@ class economy(commands.Cog):
                     print(gugu)
 
             self.save_json() 
-            await asyncio.sleep(3600)  
+            await asyncio.sleep(0.2)  
     
     @commands.hybrid_command(name="addstock", with_app_command=True, help="Adds a new stock to the marked")
     async def add_stock(self, ctx, name: str, avg_price: float):
@@ -539,24 +550,20 @@ class economy(commands.Cog):
                 values = values[0]
             if values and values["level"] >= 20:
                 geld = level2
-                if values["level"] == 20:
-                    await ctx.send("You are now worker lvl 2")
+                if values and values["level"] >= 60:
+                    geld = level3
+                    if values and values["level"] >= 120:
+                        geld = level4
+                        
             else:
                 geld = random.randint(900, 1200)
-            if values and values["level"] >= 60:
-                geld = level3
-                if values["level"] == 60:
-                    await ctx.send("You are now worker lvl 3")
-            else:
-                geld = random.randint(900, 1200)
-
-            if values and values["level"] >= 120:
-                geld = level4
-                if values["level"] == 120:
-                    await ctx.send("You are now worker lvl 4")
-            else:
-                geld = random.randint(900, 1200)
-
+                
+            if values["level"] == 20:
+                await ctx.send("You are now worker lvl 2")
+            if values["level"] == 60:
+                await ctx.send("You are now worker lvl 3")
+            if values["level"] == 120:
+                await ctx.send("You are now worker lvl 4")
             if values:
                 values["money"] += geld
                 values["level"] += 1
