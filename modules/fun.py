@@ -5,6 +5,7 @@ import requests
 import random
 from dotenv import load_dotenv
 import os
+import re
 from modules.backend import has_mod_role
 load_dotenv()
 
@@ -29,30 +30,74 @@ class fun(commands.Cog):
                 if images in data and len(data[images]) > 0:
                     image = random.choice(data[images])
                     image_url = incomplete_url + image['representations']['full']
+                    author = None
                     if 'uploader' in image:
                         author = image['uploader']
-                    else:
+                    if author == None:
                         author = 'anonymous'
-                    await ctx.send(f'This Image is from {author}.')
+                    artist = 'anonymous'
+                    prompter = 'was prompted by '
+                    editor = 'was edited by '
+                    for tag in image['tags']:
+                        if len(artist) > 1000:
+                            artist = artist + " and more"
+                            break
+                        if tag.startswith("artist:"):
+                            if artist == 'anonymous':
+                                artist = tag.split(":")[1]
+                            else:
+                                artist = artist + " and " + tag.split(":")[1]
+                        elif tag.startswith("editor:"):
+                            if editor == 'was edited by ':
+                                editor = editor + tag.split(":")[1]
+                            else:
+                                editor = editor + " and " + tag.split(":")[1]
+                        elif tag.startswith("prompter:"):
+                            if prompter == 'was prompted by ':
+                                prompter = prompter + tag.split(":")[1]
+                            else:
+                                prompter = prompter + " and " + tag.split(":")[1]
+
+                    base_url = re.match(r'(https?://[^/]+)', url).group(1)
+                    message = (f"[This Image](<{base_url}/images/{image['id']}>) ")
+                    if prompter != 'was prompted by ':
+                        message += prompter
+                        if artist != 'anonymous':
+                            message += (f" based on {artist}'s art")
+                        if editor != ('was edited by '):
+                            message += '.\nIt '
+                    elif artist != 'anonymous':
+                        message += (f"was made by {artist}")
+                        if editor != ('was edited by '):
+                            message += '.\nIt '
+                    if editor != ('was edited by '):
+                        message = message + editor
+                    if (editor != 'was edited by ' or artist != 'anonymous' or prompter != 'was prompted by '):
+                        message += '.\nit'
+                    if author == 'anonymous':
+                        message += (f' was uploaded by {author}.')
+                    else:
+                        message += (f' was uploaded by [{author}](<{base_url}/profiles/{author.replace(" ", "-")}>).')
+                    await ctx.send(message)
                     await ctx.send(image_url)
                 else:
                     await ctx.send('No picture was found')
             else:
                 await ctx.send('Error occured while searching for pictures')
-    
-    @commands.command(name="manebooru", help="Search for pictures on Manebooru")
-    async def manebooru(self, ctx, *, search_query: str = None):
-        if search_query != None:
-            search_query = f'https://manebooru.art/api/v1/json/search/images?q={search_query},-explicit,-suggestive,-*fetish&sf=random'
-
-        await self.process_booru_command(ctx, search_query, 'images', '')
-
 
     @commands.command(name="derpibooru", help="Search for pictures on Derpibooru")
     @has_mod_role()
     async def derpybooru(self, ctx, *, search_query: str = None):
         if search_query != None:
             search_query = f'https://derpibooru.org/api/v1/json/search/images?q={search_query},-explicit,-suggestive,-*fetish&sf=random'
+
+        await self.process_booru_command(ctx, search_query, 'images', '')
+
+
+    @commands.command(name="manebooru", help="Search for pictures on Manebooru")
+    async def manebooru(self, ctx, *, search_query: str = None):
+        if search_query != None:
+            search_query = f'https://manebooru.art/api/v1/json/search/images?q={search_query},-explicit,-suggestive,-*fetish&sf=random'
 
         await self.process_booru_command(ctx, search_query, 'images', '')
 
