@@ -11,6 +11,7 @@ ffmpeg
 idna
 isort
 lazy-object-proxy
+matplotlib
 mccabe
 multidict
 pycparser

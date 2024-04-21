@@ -21,6 +21,7 @@ class economy(commands.Cog):
     developerid = os.getenv("developerid")
     FIRST_HOUR_SLOT = 452558
     UPDATE_SLOT = 460970
+
     def __init__(self, bot):
         self.bot = bot
         slot_data = {
@@ -35,35 +36,37 @@ class economy(commands.Cog):
             "worktime": [],
             "stocks":  []
         }
-        
-        
-
-                    
-        with open("slot_data.json", "w") as json_file:
-                json.dump(slot_data, json_file)
-                self.slot_data = slot_data
-                print("created slot_data.json")
-            
         try:
-
-            #tests to ensure all categories are here
+                with open("slot_data.json", "r") as file:
+                    slot_data = json.load(file)
+                    if (("current_hour_slot" in slot_data) and ("update_slot" in slot_data)):
+                        self.slot_data = slot_data
+                    else:
+                        print("Broken")
+        except (FileNotFoundError):
+            with open("slot_data.json", "w") as file:
+                json.dump(slot_data, file)
+            self.slot_data = slot_data
+            print("created slot_data.json")
+        try: #temporary fix while trying to elegantly deal with errors
             with open("economy_data.json", "r") as json_file:
                 data = json.load(json_file)
                 if (("economy" in data) and ("economytimer" in data) and ("items" in data) and ("user_items" in data) and ("worktime" in data) and ("stocks" in data)):
                     self.data = data
-                    return
                 else:
                     #triggers when a category is missing
-                    user_input = timed_input("\033[31melements missing from economy_data.json: reset database? y/n\033[0m", 15)
-                    while (user_input != "y" and user_input != "n" and user_input != None):
-                        user_input = input("\033[31mreset database? y/n\n\033[0m")
-                    if user_input == "y":
-                        with open("economy_data.json", "w") as json_file:
-                            json.dump(init_data, json_file)
-                        self.data = init_data
-                        print("\033[30;42mdatabase was reset\033[0m")
-                    else:
-                        print("\033[101mdatabse will have to be fixed manually or reset during next restart\033[0m")
+                    # user_input = timed_input("\033[31melements missing from economy_data.json: reset database? y/n\033[0m", 15)
+                    # while (user_input != "y" and user_input != "n" and user_input != None):
+                    #     user_input = input("\033[31mreset database? y/n\n\033[0m")
+                    # if user_input == "y":
+                    #     with open("economy_data.json", "w") as json_file:
+                    #         json.dump(init_data, json_file)
+                    #     self.data = init_data
+                    #     print("\033[30;42mdatabase was reset\033[0m")
+                    # else:
+                    #     print("\033[101mdatabse will have to be fixed manually or reset during next restart\033[0m")
+                    self.data = init_data
+                    print("\033[101meconomy_data.json seems to be missing a category, bot might not work properly until fixed\033[0m")
         except (FileNotFoundError):
             #triggers when file doesn't exist
             with open("economy_data.json", "w") as json_file:
@@ -72,16 +75,19 @@ class economy(commands.Cog):
             print("created economy_data.json")
         except (json.decoder.JSONDecodeError):
             #triggers when file is invalid
-            user_input = timed_input("\033[31merror reading from economy_data.json, file might be corrupted or mistyped: reset database? y/n\033[0m", 15)
-            while (user_input != "y" and user_input != "n" and user_input != None):
-                user_input = input("\033[31mreset database? y/n\033[0m")
-            if user_input == "y":
-                with open("economy_data.json", "w") as json_file:
-                    json.dump(init_data, json_file)
-                self.data = init_data
-                print("\033[30;42mdatabase was reset\033[0m")
-            else:
-                print("\033[101mdatabse will have to be fixed manually or reset during next restart\033[0m")
+            # user_input = timed_input("\033[31merror reading from economy_data.json, file might be corrupted or mistyped: reset database? y/n\033[0m", 15)
+            # while (user_input != "y" and user_input != "n" and user_input != None):
+            #     user_input = input("\033[31mreset database? y/n\033[0m")
+            # if user_input == "y":
+            #     with open("economy_data.json", "w") as json_file:
+            #         json.dump(init_data, json_file)
+            #     self.data = init_data
+            #     print("\033[30;42mdatabase was reset\033[0m")
+            # else:
+            #     print("\033[101mdatabse will have to be fixed manually or reset during next restart\033[0m")
+            self.data = init_data
+            print("\033[101merror reading from economy_data.json, file might be corrupted or mistyped, bot might not work properly until fixed\033[0m")
+
     def save_slot(self):
         with open('slot_data.json', 'w') as file:
             json.dump(self.slot_data, file)
@@ -92,13 +98,18 @@ class economy(commands.Cog):
                 self.slot_data = json.load(file)
         except (json.decoder.JSONDecodeError, FileNotFoundError):
             pass
+
     def save_json(self):
-        with open("economy_data.json", "w") as json_file:
-            json.dump(self.data, json_file)
+        if self.data != None:
+            with open("economy_data.json", "w") as json_file:
+                json.dump(self.data, json_file)
 
     def load_data(self):
-        with open("economy_data.json", "r") as json_file:
-            self.data = json.load(json_file)
+        try:
+            with open("economy_data.json", "r") as json_file:
+                self.data = json.load(json_file)
+        except (json.decoder.JSONDecodeError, FileNotFoundError):
+            self.data = None
     async def update_hour_slot(self):
         while True:
             self.load_slot()
@@ -113,7 +124,6 @@ class economy(commands.Cog):
                 self.slot_data['current_hour_slot'] = next_hour_slot
             self.save_slot()
             await asyncio.sleep(0.5)
-            
     async def calculate_price_change(self, value, starting_price):
         with open('slot_data.json', 'r') as file:
             slot = json.load(file)
